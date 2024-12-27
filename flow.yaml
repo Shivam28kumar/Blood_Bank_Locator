@@ -1,0 +1,87 @@
+---
+version: "0.1.0"
+
+metadata:
+  flow_type: "compound"
+  name: "blood-bank-locator-ai-flow"
+  description: >
+    A flow to assist users in finding nearby blood banks based on their blood type
+    and location, providing contact details, availability, and navigation assistance.
+  author: "shivam"
+  tags: ["medical", "healthcare", "AI", "blood bank"]
+  private: false
+
+inputs:
+  blood_type:
+    type: string
+    description: "User-provided blood type needed."
+    required: true
+    example: "O-negative"
+  location:
+    type: string
+    description: >
+      User's location for finding nearby blood banks.
+    required: true
+    example: "Indira Gandhi Institute of Medical Sciences (IGIMS), Patna"
+
+workflow:
+  find_blood_banks:
+    type: "custom"
+    inputs:
+      blood_type_input: "${inputs.blood_type}"
+      location_input: "${inputs.location}"
+    model:
+      provider: "openai"
+      name: "gpt-4o"
+    prompt: |
+      You are a medical assistant AI designed to help users find nearby blood banks and relevant contact details.
+      The user is in urgent need of blood. Based on the provided blood type: {blood_type_input}
+      and location: {location_input}, return a detailed list of the closest blood banks. Include the following details
+      for each location:
+      - Blood Bank Name
+      - Address
+      - Contact Details (Phone number, email, etc.)
+      - Blood Bank Availability (If known, mention availability of {blood_type_input} blood)
+      
+      Additionally, provide:
+      - Navigation links or guidance to the blood banks
+      - Any advice or alternatives in case {blood_type_input} blood is not readily available.
+
+  provide_emergency_guidance:
+    type: "custom"
+    depends_on:
+      - "find_blood_banks"
+    inputs:
+      blood_banks_list: "${find_blood_banks.output}"
+    model:
+      provider: "openai"
+      name: "gpt-4o"
+    prompt: |
+      Based on the list of blood banks: {blood_banks_list}, provide any additional emergency advice for the user.
+      Include:
+      - Instructions on how to contact emergency services if needed.
+      - Alternatives like contacting other blood banks or using donor registries.
+
+output:
+  value:
+    - "${find_blood_banks.output}"
+    - "${provide_emergency_guidance.output}"
+
+readme: |
+  # Blood Bank Locator AI Flow
+
+  This flow assists users in finding nearby blood banks based on their blood type
+  and location. It provides detailed information about blood banks, navigation
+  assistance, and emergency guidance.
+
+  ## Inputs:
+  - **Blood Type**: User-provided blood type needed.
+  - **Location**: User's location to find nearby blood banks.
+
+  ## Outputs:
+  - **Blood Bank List**: Detailed list of nearby blood banks, including availability of the specified blood type.
+  - **Emergency Guidance**: Additional advice and resources for emergencies.
+
+  ## Workflow Overview:
+  1. **Find Blood Banks**: Uses input blood type and location to locate nearby blood banks.
+  2. **Provide Emergency Guidance**: Offers advice for emergencies and alternatives if blood is unavailable.
